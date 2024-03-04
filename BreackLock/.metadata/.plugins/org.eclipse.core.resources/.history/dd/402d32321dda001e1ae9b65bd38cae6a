@@ -1,0 +1,63 @@
+package com.breachLock.BreachLock;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.List;
+import java.util.Map;
+
+public class App {
+	public static void main(String[] args) {
+		String url = "https://stackoverflow.com/questions/6467848/how-to-get-http-response-code-for-a-url-in-java";
+		try {
+			URL siteURL = new URL(url);
+			HttpURLConnection connection = (HttpURLConnection) siteURL.openConnection();
+//			connection.setRequestMethod("GET");
+//			connection.connect();
+
+			int statusCode = connection.getResponseCode();
+			if (statusCode >= 400 && statusCode < 500) {
+				System.out.println("Error " + statusCode + ": Client Error");
+
+				// Check if the error page is custom
+				boolean isCustomErrorPage = isCustomErrorPage(connection);
+				if (isCustomErrorPage) {
+					System.out.println("Custom error page.");
+				} else {
+					System.out.println("Default error page.");
+				}
+			} else if (statusCode >= 500 && statusCode < 600) {
+				System.out.println("Error " + statusCode + ": Server Error");
+			} else {
+				System.out.println("No error detected.");
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private static boolean isCustomErrorPage(HttpURLConnection connection) throws IOException {
+		InputStream errorStream = connection.getErrorStream();
+
+		StringBuilder response = new StringBuilder();
+		if (errorStream == null) {
+			return false;
+		}
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(errorStream))) {
+
+			String line;
+			while ((line = reader.readLine()) != null) {
+				response.append(line);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		String errorPageContent = response.toString();
+		return errorPageContent.contains("Custom Error Page") || errorPageContent.contains("Error Page Not Found")
+				|| errorPageContent.contains("<div id=\"custom-error-page\">") || errorPageContent.contains("<link");
+	}
+}
